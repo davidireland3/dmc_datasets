@@ -15,6 +15,8 @@
    ```
    Or pass the data_dir parameter directly to load_dataset().
 
+4. Git clone this repo and and use `pip intsall -e .` from the root of the repo
+
 ## Dataset Usage
 
 The datasets can be loaded as follows:
