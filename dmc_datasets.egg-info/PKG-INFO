@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: dmc_datasets
+Version: 0.1.0
+Summary: Discrete action space wrapper for DeepMind Control Suite and wrapper for D4RL formatted DMC datasets
+Author: David Ireland
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: torch
+Requires-Dist: dm_control
+Requires-Dist: gymnasium
+
+## Dataset Setup
+
+1. Download the datasets from [link to your dataset location]
+2. Extract them maintaining the following structure:
+   ```
+   /path/to/your/data/
+   └── bin_size_3/
+       ├── finger-spin-expert
+       ├── fish-swim-expert
+       └── ...
+   ```
+3. Set the environment variable DMC_DISCRETE_DATA_DIR:
+   ```bash
+   export DMC_DISCRETE_DATA_DIR=/path/to/your/data
+   ```
+   Or pass the data_dir parameter directly to load_dataset().
