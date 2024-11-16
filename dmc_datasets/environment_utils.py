@@ -40,7 +40,7 @@ def run_test(alg: Any, env: gym.Env, seed: int) -> float:
     return score
 
 
-class DMSuiteWrapper(gym.Env):
+class DMSuiteEnv(gym.Env):
     """
     Gymnasium wrapper for DeepMind Control Suite environments.
 
@@ -117,7 +117,7 @@ class DMSuiteWrapper(gym.Env):
         return observation, reward, False, self._time_step.last(), info
 
 
-class AtomicWrapper(gym.Wrapper):
+class AtomicDMEnv(gym.Wrapper):
     """
     Wrapper for atomic action space discretization.
 
@@ -125,7 +125,7 @@ class AtomicWrapper(gym.Wrapper):
     by creating a lookup table of discretized actions.
     """
 
-    def __init__(self, env: DMSuiteWrapper, bin_size: int = 3) -> None:
+    def __init__(self, env: DMSuiteEnv, bin_size: int = 3) -> None:
         """
         Initialize atomic action wrapper.
 
@@ -133,7 +133,7 @@ class AtomicWrapper(gym.Wrapper):
             env: DMSuiteWrapper environment
             bin_size: Number of bins per action dimension
         """
-        super(AtomicWrapper, self).__init__(env)
+        super(AtomicDMEnv, self).__init__(env)
         lows = self.env.action_space.low
         highs = self.env.action_space.high
         self.action_lookups: Dict[int, List[float]] = {}
@@ -172,7 +172,7 @@ class AtomicWrapper(gym.Wrapper):
         return continuous_action
 
 
-class FactorisedWrapper(gym.Wrapper):
+class FactorisedDMEnv(gym.Wrapper):
     """
     Wrapper for factorized action space discretization.
 
@@ -180,7 +180,7 @@ class FactorisedWrapper(gym.Wrapper):
     one for each action dimension.
     """
 
-    def __init__(self, env: DMSuiteWrapper, bin_size: Union[int, List[int], np.ndarray] = 3) -> None:
+    def __init__(self, env: DMSuiteEnv, bin_size: Union[int, List[int], np.ndarray] = 3) -> None:
         """
         Initialize factorized action wrapper.
 
@@ -188,7 +188,7 @@ class FactorisedWrapper(gym.Wrapper):
             env: DMSuiteWrapper environment
             bin_size: Number of bins per action dimension, either single int or list
         """
-        super(FactorisedWrapper, self).__init__(env)
+        super(FactorisedDMEnv, self).__init__(env)
         self.num_subaction_spaces = self.env.action_space.shape[0]
         if isinstance(bin_size, int):
             self.bin_size = [bin_size] * self.num_subaction_spaces
@@ -254,24 +254,73 @@ class FactorisedWrapper(gym.Wrapper):
         Load dataset for current environment configuration.
 
         Args:
-            level: Dataset difficulty level
-            data_dir: Path to dataset directory
+            level: Dataset difficulty level ('medium', 'expert', 'medium-expert', 'random-medium-expert')
+            data_dir: Optional path to dataset directory
 
         Returns:
             Loaded replay buffer
+
+        Raises:
+            ValueError: If environment, bin size or level is not supported
         """
+        domain_name = self.env.domain_name
+        task_name = self.env.task_name
+        bin_size = self.bin_size[0] if isinstance(self.bin_size, list) else self.bin_size
+
+        # Check valid environments
+        supported_envs = {
+            'cheetah-run': [3],
+            'finger-spin': [3],
+            'fish-swim': [3],
+            'quadruped-walk': [3],
+            'humanoid-stand': [3],
+            'dog-trot': [3, 10, 30, 50, 75, 100]
+        }
+
+        env_name = f"{domain_name}-{task_name}"
+        if env_name not in supported_envs:
+            raise ValueError(
+                f"Environment {env_name} not supported. Supported environments are: "
+                f"{', '.join(supported_envs.keys())}"
+            )
+
+        # Check valid bin size
+        if bin_size not in supported_envs[env_name]:
+            if env_name == 'dog-trot':
+                raise ValueError(
+                    f"Bin size {bin_size} not supported for {env_name}. "
+                    f"Supported bin sizes are: {supported_envs[env_name]}"
+                )
+            else:
+                raise ValueError(
+                    f"Only bin size 3 is supported for {env_name}"
+                )
+
+        # Check valid difficulty level
+        valid_levels = ['medium', 'expert', 'medium-expert', 'random-medium-expert']
+        if level not in valid_levels:
+            raise ValueError(
+                f"Level {level} not supported. Supported levels are: {valid_levels}"
+            )
+
         try:
-            data = get_buffer_from_d4rl(load_dataset(self.env.domain_name, self.env.task_name, level, self.bin_size,
-                                                     data_dir))
-        except Exception:
-            raise ValueError("Unable to load data. Either path to data is not correct, data is not downloaded, or no dataset"
-                             " exists for this task/bin size/level combination.")
+            data = get_buffer_from_d4rl(load_dataset(domain_name, task_name, level, bin_size, data_dir))
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Dataset not found for {env_name} with bin_size={bin_size} and level={level}. "
+                "Please ensure you have downloaded the datasets and set the correct data directory"
+            )
+        except Exception as e:
+            raise Exception(
+                f"Error loading dataset: {str(e)}. Please ensure the dataset format is correct "
+                "and you have the necessary permissions to read the files"
+            )
 
         return data
 
 
 def make_env(task_name: str, task: str, bin_size: int = 3,
-             factorised: bool = True) -> Union[FactorisedWrapper, AtomicWrapper]:
+             factorised: bool = True) -> Union[FactorisedDMEnv, AtomicDMEnv]:
     """
     Create discretised DMC environment.
 
@@ -285,6 +334,6 @@ def make_env(task_name: str, task: str, bin_size: int = 3,
         Wrapped environment with discrete action space
     """
     if factorised:
-        return FactorisedWrapper(DMSuiteWrapper(task_name, task), bin_size=bin_size)
+        return FactorisedDMEnv(DMSuiteEnv(task_name, task), bin_size=bin_size)
     else:
-        return AtomicWrapper(DMSuiteWrapper(task_name, task), bin_size=bin_size)
+        return AtomicDMEnv(DMSuiteEnv(task_name, task), bin_size=bin_size)
