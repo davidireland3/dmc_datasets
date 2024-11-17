@@ -185,7 +185,7 @@ class FactorisedDMEnv(gym.Wrapper):
 
     def __init__(self, env: DMSuiteEnv, bin_size: Union[int, List[int], np.ndarray] = 3) -> None:
         """
-        Initialize factorised action wrapper.
+        Initialise factorised action wrapper.
 
         Args:
             env: DMSuiteWrapper environment
@@ -310,7 +310,7 @@ class FactorisedDMEnv(gym.Wrapper):
             )
 
         try:
-            data = load_dataset(task_name, task_name, level, bin_size, data_dir)
+            data = load_dataset(domain_name, task_name, level, bin_size, data_dir)
             if return_type == 'buffer':
                 buffer = get_buffer_from_d4rl(data, device='cpu')
                 return buffer
@@ -391,9 +391,9 @@ def get_from_list(data: List) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.nd
     """
     states = [d[0] for d in data]
     actions = [d[1] for d in data]
-    rewards = [d[2] for d in data]
+    rewards = [[d[2]] for d in data]
     next_states = [d[3] for d in data]
-    dones = [d[4] for d in data]
+    dones = [[d[4]] for d in data]
     return np.array(states), np.array(actions), np.array(rewards), np.array(next_states), np.array(dones)
 
 
