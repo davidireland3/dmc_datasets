@@ -271,7 +271,12 @@ class FactorisedDMEnv(gym.Wrapper):
         """
         domain_name = self.env.domain_name
         task_name = self.env.task_name
-        bin_size = self.bin_size[0] if isinstance(self.bin_size, list) else self.bin_size
+        if isinstance(self.bin_size, list):
+            if not all([b == self.bin_size[0] for b in self.bin_size]):
+                raise ValueError("Datasets assume bin size is consistent across all dimensions.")
+            bin_size = self.bin_size[0]
+        else:
+            bin_size = self.bin_size
 
         # Check valid environments
         supported_envs = {
@@ -431,3 +436,40 @@ def load_dataset(task_name: str = None, task: str = None,
     with open(filepath, 'rb') as f:
         data = pickle.load(f)
     return data
+
+
+class FactoredToDiscreteMapping:
+    def __init__(self, env: FactorisedDMEnv) -> None:
+        base_env = env.env
+        self.num_subaction_spaces = env.num_subaction_spaces
+        self.bin_size = env.bin_size
+        if isinstance(self.bin_size, list) and all([b == self.bin_size[0] for b in self.bin_size]):
+            self.bin_size = self.bin_size[0]
+        elif isinstance(self.bin_size, list) and any([b != self.bin_size[0] for b in self.bin_size]):
+            raise ValueError("Environment does not support different bin sizes for each action dimension")
+
+        lows = base_env.action_space.low
+        highs = base_env.action_space.high
+        self.factored_action_lookup = {}  # dict which maps factored action to continuous action
+        for a, l, h in zip(range(self.num_subaction_spaces), lows, highs):
+            self.factored_action_lookup[a] = {}
+            bins = np.linspace(l, h, self.bin_size)
+            for count, b in enumerate(bins):
+                self.factored_action_lookup[a][count] = b
+
+        self.discrete_action_lookups = {}
+        bins = []
+        for low, high in zip(lows, highs):
+            bins.append(np.linspace(low, high, self.bin_size).tolist())
+        for count, action in enumerate(product(*bins)):
+            self.discrete_action_lookups[tuple(action)] = count
+
+    def _get_continuous_action(self, action) -> List[float]:
+        continuous_action = []
+        for action_id, a in enumerate(action):
+            continuous_action.append(self.factored_action_lookup[action_id][a])
+        return continuous_action
+
+    def get_atomic_action(self, factored_action) -> int:
+        continuous_action = self._get_continuous_action(factored_action)
+        return self.discrete_action_lookups[tuple(continuous_action)]
