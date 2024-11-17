@@ -1,19 +1,12 @@
 """
 Buffer utilities for handling replay memory and dataset loading in reinforcement learning.
 
-This module provides classes and functions for managing experience replay buffers
-and loading discretised DeepMind Control Suite datasets. The main components include
-a ReplayBuffer class for storing and sampling transitions, and utilities for loading
-and processing D4RL format datasets.
+This module provides a ReplayBuffer class for storing and sampling transitions.
 """
 
 import numpy as np
-import os
-import pickle
 import torch
-from typing import List, Tuple
-
-from dmc_datasets.config import get_data_dir
+from typing import Tuple
 
 
 class ReplayBuffer:
@@ -228,79 +221,3 @@ class ReplayBuffer:
                 torch.stack([self.rewards[candidate_idx + i] for i in range(rollout_len)], dim=1),
                 torch.stack([self.next_states[candidate_idx + i] for i in range(rollout_len)], dim=1),
                 torch.stack([self.dones[candidate_idx + i] for i in range(rollout_len)], dim=1))
-
-
-def get_buffer_from_d4rl(dataset: List, max_memory: int = None, batch_size: int = 256,
-                         device: str = None) -> ReplayBuffer:
-    """
-    Create and initialize a replay buffer from D4RL format dataset.
-
-    Args:
-        dataset: List of transitions in D4RL format
-        max_memory: Maximum buffer size (defaults to dataset size)
-        batch_size: Batch size for sampling
-        device: PyTorch device for tensor storage
-
-    Returns:
-        Initialized ReplayBuffer containing the dataset
-    """
-    states, actions, rewards, next_states, dones = get_from_list(dataset)
-    if max_memory is None:
-        max_memory = states.shape[0]
-    buffer = ReplayBuffer(max_memory, states.shape[1], actions.shape[1], batch_size, device)
-    buffer.load_from_d4rl(states, actions, rewards, next_states, dones)
-    return buffer
-
-
-def get_from_list(data: List) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Convert list of transitions to numpy arrays.
-
-    Args:
-        data: List of transition tuples
-
-    Returns:
-        Tuple of numpy arrays containing states, actions, rewards, next_states, and dones
-    """
-    states = [d[0] for d in data]
-    actions = [d[1] for d in data]
-    rewards = [d[2] for d in data]
-    next_states = [d[3] for d in data]
-    dones = [d[4] for d in data]
-    return np.array(states), np.array(actions), np.array(rewards), np.array(next_states), np.array(dones)
-
-
-def load_dataset(task_name: str = None, task: str = None,
-                 level: str = None, bin_size: int = 3,
-                 data_dir: str = None) -> List[Tuple[np.ndarray, np.ndarray, float, np.ndarray, bool]]:
-    """
-    Load a discretised DMC dataset from the specified directory.
-
-    Args:
-        task_name: Task name (e.g., 'walker')
-        task: Specific task variant (e.g., 'walk')
-        level: Difficulty level (e.g., 'expert')
-        bin_size: Number of bins for action discretization
-        data_dir: Optional override for data directory. If None, uses environment variable or default
-
-    Returns:
-        List of transition tuples (state, action, reward, next_state, done)
-
-    Raises:
-        FileNotFoundError: If dataset file cannot be found at specified location
-    """
-    if data_dir is None:
-        data_dir = get_data_dir()
-
-    filepath = os.path.join(data_dir, f'{bin_size}_bins', f'{task_name}-{task}-{level}')
-    print(f"Loading dataset from: {filepath}")
-
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(
-            f"Dataset not found at {filepath}. Please download the datasets and set "
-            "DMC_DISCRETE_DATA_DIR environment variable to point to their location."
-        )
-
-    with open(filepath, 'rb') as f:
-        data = pickle.load(f)
-    return data

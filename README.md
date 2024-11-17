@@ -20,27 +20,30 @@
 ## Dataset Usage
 
 The datasets can be loaded as follows:
+
 ```python
-from dmc_datasets.buffer_utils import load_dataset
+
+from dmc_datasets.environment_utils import load_dataset
+
 dataset = load_dataset(task_name='finger', task='spin', bin_size=3, level='medium')
 ```
-`dataset` will be a `ReplayBuffer` object (definition can be found in the code) which can be integrated into your training pipeline.
+`dataset` will be a list of transitions. 
 
 Currently we only support bin size of 3 for `cheetah-run`, `finger-spin`, `fish-swim`, `quaduped-walk`, `humanoid-stand`, `dog-trot` and bin sizes {10, 30, 50, 75, 100} for `dog-trot`. Each dataset has a `medium`, `expert`, `medium-expert` and `random-medium-expert` level.
 
 ## Environment wrappers
 
-1. We also provide wrappers for the DMC dataset that be used to return gym environments with either factorised or atomic discrete action spaces:
+1. We also provide wrappers for the DMC dataset that can be used to return gym environments with either factorised or atomic discrete action spaces:
    ```python
    from dmc_datasets.environment_utils import make_env
 
    env = make_env(task_name='finger', task='spin', bin_size=3, factorised=True)
    ```
    
-2. This environment class can also be used to load a corresponding dataset:
+2. This environment class can also be used to load a corresponding dataset for the environment instance:
    ```python
    from dmc_datasets.environment_utils import make_env
 
    env = make_env(task_name='finger', task='spin', bin_size=3, factorised=True)
-   dataset = env.load_dataset(level='medium')
+   dataset = env.load_dataset(level='medium', return_type='raw')  # return_type supports 'raw', 'dict', 'replay_buffer'
    ```
