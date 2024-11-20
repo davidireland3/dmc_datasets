@@ -13,6 +13,11 @@
    ```bash
    export DMC_DISCRETE_DATA_DIR=/path/to/your/data
    ```
+   For a temporary setting, run this in your terminal. To make it permanent, add the export line to your shell's configuration file:
+   ```
+   For Bash: ~/.bashrc or ~/.bash_profile
+   For Zsh: ~/.zshrc
+   ```
    Or pass the data_dir parameter directly to load_dataset().
 
 4. Git clone this repo and and use `pip intsall -e .` from the root of the repo
