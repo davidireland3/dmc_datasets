@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: dmc_datasets
-Version: 0.1.2
+Version: 0.1.3
 Summary: Discrete action space wrapper for DeepMind Control Suite and wrapper for D4RL formatted DMC datasets
 Author: David Ireland, Alex Beeson
 Author-email: alex.beeson@warwick.ac.uk
@@ -24,6 +24,11 @@ Requires-Dist: gymnasium
 3. Set the environment variable DMC_DISCRETE_DATA_DIR:
    ```bash
    export DMC_DISCRETE_DATA_DIR=/path/to/your/data
+   ```
+   For a temporary setting, run this in your terminal. To make it permanent, add the export line to your shell's configuration file:
+   ```
+   For Bash: ~/.bashrc or ~/.bash_profile
+   For Zsh: ~/.zshrc
    ```
    Or pass the data_dir parameter directly to load_dataset().
 

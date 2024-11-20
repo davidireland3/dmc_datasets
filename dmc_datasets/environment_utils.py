@@ -140,6 +140,7 @@ class AtomicDMEnv(gym.Wrapper):
         lows = self.env.action_space.low
         highs = self.env.action_space.high
         self.action_lookups: Dict[int, List[float]] = {}
+        self.bin_size = bin_size
         bins = []
         for low, high in zip(lows, highs):
             bins.append(np.linspace(low, high, bin_size).tolist())
@@ -173,6 +174,46 @@ class AtomicDMEnv(gym.Wrapper):
         """
         continuous_action = self.action_lookups[action]
         return continuous_action
+
+    def load_dataset(self, level: str, return_type: str = 'raw',
+                     data_dir: Optional[str] = None) -> Union[List, Dict]:
+        """
+        Load dataset for current environment configuration.
+        Can return as a raw list of transitions, a dictionary of arrays, or a replay buffer.
+
+        Args:
+            level: Dataset difficulty level ('medium', 'expert', 'medium-expert', 'random-medium-expert')
+            return_type: How to return the dataset ('dict', 'raw'). Defaults to 'raw'.
+            data_dir: Optional path to dataset directory
+
+        Returns:
+            Loaded replay buffer
+
+        Raises:
+            ValueError: If environment, bin size or level is not supported
+        """
+        if isinstance(self.bin_size, list):
+            if not all([b == self.bin_size[0] for b in self.bin_size]):
+                raise ValueError("Datasets assume bin size is consistent across all dimensions.")
+            bin_size = self.bin_size[0]
+        else:
+            bin_size = self.bin_size
+
+        env = FactorisedDMEnv(self.env, bin_size)
+        mapping = FactoredToDiscreteMapping(env)
+        dataset = env.load_dataset(level, 'raw', data_dir)
+        dataset = [(s, mapping.get_atomic_action(a), r, ns, d) for s, a, r, ns, d in dataset]
+        if return_type == 'dict':
+            states, actions, rewards, next_states, dones = get_from_list(dataset)
+            return {
+                'states': states,
+                'actions': actions,
+                'rewards': rewards,
+                'next_states': next_states,
+                'dones': dones
+            }
+        else:
+            return dataset
 
 
 class FactorisedDMEnv(gym.Wrapper):
