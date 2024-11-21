@@ -148,6 +148,9 @@ class AtomicDMEnv(gym.Wrapper):
             self.action_lookups[count] = list(action)
         self.num_actions = len(self.action_lookups)
         self.action_space = spaces.Discrete(self.num_actions)
+        scores = SCORES[f'{self.env.domain_name}-{self.env.task_name}'][f'bin_size_{bin_size}']
+        self._random_score = scores['random']
+        self._expert_score = scores['expert']
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         """
@@ -214,6 +217,19 @@ class AtomicDMEnv(gym.Wrapper):
             }
         else:
             return dataset
+
+    def get_normalised_score(self, score: float) -> float:
+        """
+        Normalise score using random/expert performance baselines (note that the random and expert
+        scores are from factorised agents).
+
+        Args:
+            score: Raw environment score
+
+        Returns:
+            Normalised score between 0 (random) and 1 (expert)
+        """
+        return 100 * (score - self._random_score) / (self._expert_score - self._random_score)
 
 
 class FactorisedDMEnv(gym.Wrapper):
@@ -283,15 +299,15 @@ class FactorisedDMEnv(gym.Wrapper):
 
     def get_normalised_score(self, score: float) -> float:
         """
-        Normalize score using random/expert performance baselines.
+        Normalise score using random/expert performance baselines.
 
         Args:
             score: Raw environment score
 
         Returns:
-            Normalized score between 0 (random) and 1 (expert)
+            Normalised score between 0 (random) and 1 (expert)
         """
-        return (score - self._random_score) / (self._expert_score - self._random_score)
+        return 100 * (score - self._random_score) / (self._expert_score - self._random_score)
 
     def load_dataset(self, level: str, return_type: str = 'raw',
                      data_dir: Optional[str] = None) -> Union[ReplayBuffer, List, Dict]:
