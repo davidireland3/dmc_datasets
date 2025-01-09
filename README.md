@@ -18,7 +18,7 @@
    For Bash: ~/.bashrc or ~/.bash_profile
    For Zsh: ~/.zshrc
    ```
-   Or pass the data_dir parameter directly to load_dataset().
+   Or pass the data_dir parameter directly to `load_dataset()`.
 
 4. Git clone this repo and and use `pip intsall -e .` from the root of the repo
 
