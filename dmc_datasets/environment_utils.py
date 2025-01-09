@@ -307,7 +307,7 @@ class FactorisedDMEnv(gym.Wrapper):
         Returns:
             Normalised score between 0 (random) and 1 (expert)
         """
-        return 100 * (score - self._random_score) / (self._expert_score - self._random_score)
+        return (score - self._random_score) / (self._expert_score - self._random_score)
 
     def load_dataset(self, level: str, return_type: str = 'raw',
                      data_dir: Optional[str] = None) -> Union[ReplayBuffer, List, Dict]:
