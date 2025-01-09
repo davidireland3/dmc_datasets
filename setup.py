@@ -11,7 +11,7 @@ setup(
         "gymnasium"
     ],
     author="David Ireland, Alex Beeson",
-    author_email="alex.beeson@warwick.ac.uk",
+    author_email="david.ireland95@gmail.com",
     description="Discrete action space wrapper for DeepMind Control Suite and wrapper"
                 " for D4RL formatted DMC datasets",
     long_description=open("README.md").read(),
